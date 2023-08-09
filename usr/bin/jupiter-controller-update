@@ -5,6 +5,8 @@ set -euo pipefail
 info() { printf "%s\n" "$*" >&2; }
 die() { info "!! $*"; exit 1; }
 
+JQ=jq
+
 # Is this an EV2 or older unit
 is_ev2() {
   local product_serial
@@ -13,6 +15,10 @@ is_ev2() {
   local product_week="${product_serial:5:2}"
 
   [[ "$product_year" -eq "1" && "$product_week" -lt "33" ]]
+}
+
+get_current_fw() {
+  "$JQ" -r ".$1" < "$FIRMWARE_DIR/current.json"
 }
 
 ##
@@ -27,10 +33,9 @@ JUPITER_CONTROLLER_UPDATE_FIRMWARE_DIR=${JUPITER_CONTROLLER_UPDATE_FIRMWARE_DIR-
 
 FIRMWARE_DIR=${JUPITER_CONTROLLER_UPDATE_FIRMWARE_DIR:-/usr/share/jupiter_controller_fw_updater}
 
-# Build Date: Wed Aug  9 11:42:43 PDT 2023
-CURRENT_D21_FW_TS=64D3DE23
-CURRENT_D20_FW_TS=64D3DE1C
-CURRENT_RA4_FW_TS=64D3DE1B
+CURRENT_D21_FW_TS="$(get_current_fw "D21")"
+CURRENT_D20_FW_TS="$(get_current_fw "D20")"
+CURRENT_RA4_FW_TS="$(get_current_fw "RA")"
 
 CURRENT_FW_FILE_D21="$FIRMWARE_DIR"/D21_APP_REL_${CURRENT_D21_FW_TS}.bin
 CURRENT_FW_FILE_D20="$FIRMWARE_DIR"/D20_APP_REL_${CURRENT_D20_FW_TS}.bin
@@ -51,7 +56,6 @@ FIRMWARE_TOOL_TYPE_3="$FIRMWARE_DIR"/d20bootloader.py
 # Start with this tool -- it will suffice for getting the HW ID which is required
 FIRMWARE_TOOL=$FIRMWARE_TOOL_TYPE_1
 
-JQ=jq
 checkmode=""
 
 if [[ $# -eq 1 && ${1-} = "--check" ]]; then
